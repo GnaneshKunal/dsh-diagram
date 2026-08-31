@@ -2,7 +2,7 @@
 
 `dsh-diagram` 是独立发布的 DeepSeek Harness Web 插件。它把已经进入 DSH Session 的文章内容转换为可编辑的 Excalidraw 画布，并通过插件自有 sidecar 持久化。插件仓库、npm 包和 DSH 源码必须保持分离。
 
-本文件是开发代理的维护入口。`CLAUDE.md` 必须保持为指向本文件的软链。产品现状见 [README.md](README.md) 和 [README.zh-CN.md](README.zh-CN.md)，设计决策见 [DESIGN.md](DESIGN.md)，sidecar 的长期理由见 [.agents/notes/implemented/architecture/2026-08-14-diagram-canvas-sidecar.md](.agents/notes/implemented/architecture/2026-08-14-diagram-canvas-sidecar.md)。
+本文件是开发代理的维护入口。`CLAUDE.md` 必须保持为只含 `@AGENTS.md` 一行的普通文件（@ 导入，单一事实源仍是本文件）；不得改回符号链接，DSH STORE 的固定源扫描会因仓库内出现符号链接而拒绝自动收录。产品现状见 [README.md](README.md) 和 [README.zh-CN.md](README.zh-CN.md)，设计决策见 [DESIGN.md](DESIGN.md)，sidecar 的长期理由见 [.agents/notes/implemented/architecture/2026-08-14-diagram-canvas-sidecar.md](.agents/notes/implemented/architecture/2026-08-14-diagram-canvas-sidecar.md)。
 
 ## 发布身份与仓库
 
@@ -65,6 +65,9 @@ pnpm run test
 
 - 普通插件工作不得修改 DeepSeek Harness 源码。发现 DSH API 缺口时，先记录上游需求；插件仍以当前公开 DSH 版本为发布目标。
 - 当前支持 DSH `0.1.0-rc.6`。升级时同时更新 peerDependencies、devDependencies、README 徽章和兼容表、`build/smoke-dsh-install.mjs` 中的版本及真实安装测试。
+- `package.json.dsh.compatibility` 的 `dshReleases` 与 `dshOperations` 是 DSH STORE 读取的逐版本兼容声明，也是唯一由我们自己给出的兼容证据。只允许写入 `smoke:dsh-install` 真实跑出来的结论；未执行的项写 `unknown`，不得由版本范围推导（商店明确规定范围不能替代精确记录）。当前 `0.1.0-rc.6`/`0.1.0-rc.8`/`0.1.1-rc.1`/`0.1.1-rc.2` 四版 install/start/uninstall 均为 `passed`，rollback 未测故为 `unknown`。
+- smoke 支持 `--dsh-version`（或 `DSH_DIAGRAM_DSH_VERSION`）选择目标 DSH，和 `--dsh-bin`（或 `DSH_BIN`）复用已装好的 DSH。多版本取证用这两个入口，不要为此改动 smoke 的隔离逻辑。
+- smoke 断言只能锚定 DSH 的**行为契约**，不能锚定某一版的源码写法。已踩过两次：boot 全局从 `window.__DSH_BOOT__` 变为 `globalThis["__DSH_BOOT__"]`；卸载后 `/diagram-assets` 从回落 SPA 变为返回 404。两处都曾把插件正常的情况误报成不兼容，现分别由 `isBootDocument` 和「404 或 SPA 皆可、其余失败」的不变量断言覆盖。
 - 不要对 DSH Service class 使用跨包 `instanceof`。DSH 的 source launch 和已构建 npm artifact 可能加载同一 class 的两个模块实例，导致合法 service 被误判。依赖 Cordis `static inject` 等待服务，再通过 `ctx.get("serviceKey")` 取得结构化接口。
 - 注册必须跟随 Cordis 生命周期。WebServer route 用 `ctx.effect()` 包装 disposer；`Tools.register()` 自己已经注册 effect，不要重复包装成嵌套 effect。
 - 初始化顺序是：验证物理 bind、取得依赖、打开 storage-domain、注册关闭 effect、注册静态资源和 RPC、注册工具。失败时不得留下半注册入口。

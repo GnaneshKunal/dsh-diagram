@@ -9,7 +9,7 @@ import { basename, delimiter, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
 
-const DSH_VERSION = "0.1.0-rc.6";
+const DEFAULT_DSH_VERSION = "0.1.0-rc.6";
 const DEFAULT_COMMAND_TIMEOUT_MS = 120_000;
 const DEFAULT_INSTALL_TIMEOUT_MS = 420_000;
 const DEFAULT_START_TIMEOUT_MS = 90_000;
@@ -23,6 +23,11 @@ const upgradeFrom = option("upgrade-from", "DSH_DIAGRAM_UPGRADE_FROM");
 if (upgradeFrom === "true" || upgradeFrom?.trim() === "") {
   throw new Error("--upgrade-from requires a package version");
 }
+const dshVersionOption = option("dsh-version", "DSH_DIAGRAM_DSH_VERSION")?.trim();
+if (dshVersionOption === "true" || dshVersionOption === "") {
+  throw new Error("--dsh-version requires a published @deepseek-ai/dsh version");
+}
+const DSH_VERSION = dshVersionOption ?? DEFAULT_DSH_VERSION;
 const commandTimeoutMs = numberOption("command-timeout-ms", DEFAULT_COMMAND_TIMEOUT_MS);
 const installTimeoutMs = numberOption("install-timeout-ms", DEFAULT_INSTALL_TIMEOUT_MS);
 const startTimeoutMs = numberOption("start-timeout-ms", DEFAULT_START_TIMEOUT_MS);
@@ -107,7 +112,7 @@ try {
 
   const installed = await withWebServer(dsh, env, paths.project, async (baseUrl) => {
     const root = await fetchText(`${baseUrl}/`);
-    assertIncludes(root.body, "window.__DSH_BOOT__", "installed root is not the DSH boot document");
+    assertBootDocument(root.body, "installed root is not the DSH boot document");
     assertIncludes(root.body, "dsh-diagram", "installed root boot entries do not include dsh-diagram");
 
     const client = await fetchText(`${baseUrl}/plugins/dsh-diagram/client.js`);
@@ -178,7 +183,7 @@ try {
 
   const removed = await withWebServer(dsh, env, paths.project, async (baseUrl) => {
     const root = await fetchText(`${baseUrl}/`);
-    assertIncludes(root.body, "window.__DSH_BOOT__", "removed root is not the DSH boot document");
+    assertBootDocument(root.body, "removed root is not the DSH boot document");
     assertNotIncludes(root.body, "dsh-diagram", "removed root boot entries still include dsh-diagram");
 
     const fallback = await fetchText(`${baseUrl}/diagram-assets/index.html`);
@@ -187,8 +192,15 @@ try {
       "frame-ancestors 'self'",
       "removed /diagram-assets fallback still has diagram CSP",
     );
-    assertIncludes(fallback.body, "window.__DSH_BOOT__", "removed /diagram-assets fallback is not the DSH SPA");
     assertNotIncludes(fallback.body, "dsh-diagram", "removed /diagram-assets fallback still includes dsh-diagram");
+    // The invariant is that /diagram-assets stops serving the editor once the plugin is
+    // gone. DSH answers the now-unknown path with a 404 (0.1.1-rc.x) or with its SPA shell
+    // (0.1.0-rc.6); both prove the route was withdrawn. Anything else means a stale route.
+    if (fallback.status !== 404 && !isBootDocument(fallback.body)) {
+      throw new Error(
+        `removed /diagram-assets is neither a 404 nor the DSH SPA (status ${fallback.status})`,
+      );
+    }
 
     return {
       rootBytes: root.body.length,
@@ -810,6 +822,18 @@ function assertHeaderIncludes(headers, name, expected, message) {
 
 function assertIncludes(actual, expected, message) {
   if (!actual.includes(expected)) throw new Error(message);
+}
+
+// DSH publishes the boot manifest as a global whose assignment syntax has changed
+// across releases (`window.__DSH_BOOT__` through 0.1.0-rc.6, `globalThis["__DSH_BOOT__"]`
+// in 0.1.1-rc.x). Assert the global by name so the gate tracks DSH behaviour, not one
+// release's source formatting.
+function isBootDocument(actual) {
+  return /(?:window|globalThis|self)\s*(?:\.\s*__DSH_BOOT__|\[\s*["']__DSH_BOOT__["']\s*\])/.test(actual);
+}
+
+function assertBootDocument(actual, message) {
+  if (!isBootDocument(actual)) throw new Error(message);
 }
 
 function assertNotIncludes(actual, expected, message) {
