@@ -9,7 +9,7 @@ import { basename, delimiter, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
 
-const DEFAULT_DSH_VERSION = "0.1.0-rc.6";
+const DEFAULT_DSH_VERSION = "0.1.1-rc.2";
 const DEFAULT_COMMAND_TIMEOUT_MS = 120_000;
 const DEFAULT_INSTALL_TIMEOUT_MS = 420_000;
 const DEFAULT_START_TIMEOUT_MS = 90_000;

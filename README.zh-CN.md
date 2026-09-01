@@ -16,7 +16,7 @@ Agent 负责初始结构，你在 DSH 内继续修改、自动保存并导出。
 一行安装，然后在任意 DSH 会话输入 `/` 选择 **canvas-diagram**：
 
 ```sh
-npx -y @deepseek-ai/dsh@0.1.0-rc.6 plugin --profile web add dsh-diagram@latest
+npx -y @deepseek-ai/dsh@0.1.1-rc.2 plugin --profile web add dsh-diagram@latest
 ```
 
 > 适合放进你的 DSH 工具箱？先 Star，下一次处理长文章时就能快速找回。
@@ -33,7 +33,7 @@ npx -y @deepseek-ai/dsh@0.1.0-rc.6 plugin --profile web add dsh-diagram@latest
 
 前置条件：
 
-- DeepSeek Harness `0.1.0-rc.6`
+- DeepSeek Harness `0.1.1-rc.2`（最新版）；`0.1.1-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.6` 同样经过真实安装验证
 - Node.js `^22.19.0` 或 `>=24.0.0`
 - `PATH` 中可用的 pnpm `>=10`（DSH 的插件命令会把包管理交给 pnpm）
 - DSH Web 绑定 `127.0.0.1`
@@ -41,9 +41,9 @@ npx -y @deepseek-ai/dsh@0.1.0-rc.6 plugin --profile web add dsh-diagram@latest
 DeepSeek Harness 默认不会安装全局 `dsh` 命令，官方启动方式是通过 `npx`。满足前置条件的机器都可以直接执行：
 
 ```sh
-npx -y @deepseek-ai/dsh@0.1.0-rc.6 plugin --profile web add dsh-diagram@latest
-npx -y @deepseek-ai/dsh@0.1.0-rc.6 --profile web --dump-config
-npx -y @deepseek-ai/dsh@0.1.0-rc.6 web
+npx -y @deepseek-ai/dsh@0.1.1-rc.2 plugin --profile web add dsh-diagram@latest
+npx -y @deepseek-ai/dsh@0.1.1-rc.2 --profile web --dump-config
+npx -y @deepseek-ai/dsh@0.1.1-rc.2 web
 ```
 
 配置输出中应出现：
@@ -58,7 +58,7 @@ npx -y @deepseek-ai/dsh@0.1.0-rc.6 web
 
 ### 从 DSH 源码运行
 
-在与受支持的 `0.1.0-rc.6` API 匹配的 DeepSeek Harness 源码目录执行相同命令，前缀改为 `pnpm dsh`：
+在与受支持发行版 API 匹配的 DeepSeek Harness 源码目录执行相同命令，前缀改为 `pnpm dsh`：
 
 ```sh
 pnpm dsh plugin --profile web add dsh-diagram@latest
@@ -76,7 +76,7 @@ dsh --profile web --dump-config
 dsh web
 ```
 
-后文各节以短形式 `dsh` 书写；请按你实际的启动方式替换为 `npx -y @deepseek-ai/dsh@0.1.0-rc.6` 或 `pnpm dsh` 前缀。
+后文各节以短形式 `dsh` 书写；请按你实际的启动方式替换为 `npx -y @deepseek-ai/dsh@0.1.1-rc.2` 或 `pnpm dsh` 前缀。
 
 ## 创建第一张图
 
@@ -112,7 +112,7 @@ dsh web
 
 | 项目 | `0.3.4` 支持范围 |
 | --- | --- |
-| DeepSeek Harness | `0.1.0-rc.6` |
+| DeepSeek Harness | `0.1.1-rc.2`、`0.1.1-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.6` |
 | Profile | `web` |
 | Web 绑定地址 | 仅 `127.0.0.1` |
 | Node.js | `^22.19.0` 或 `>=24.0.0` |

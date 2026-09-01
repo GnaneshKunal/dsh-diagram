@@ -64,7 +64,8 @@ pnpm run test
 ## Host、生命周期与 DSH 集成
 
 - 普通插件工作不得修改 DeepSeek Harness 源码。发现 DSH API 缺口时，先记录上游需求；插件仍以当前公开 DSH 版本为发布目标。
-- 当前支持 DSH `0.1.0-rc.6`。升级时同时更新 peerDependencies、devDependencies、README 徽章和兼容表、`build/smoke-dsh-install.mjs` 中的版本及真实安装测试。
+- 构建目标是 DSH `0.1.1-rc.2`（npm `latest`）：devDependencies 精确锁到它，`build/smoke-dsh-install.mjs` 的 `DEFAULT_DSH_VERSION` 与之一致。运行时支持面是 `0.1.0-rc.6 || 0.1.0-rc.8 || 0.1.1-rc.1 || 0.1.1-rc.2`，四版都经过真实安装验证。升级时同时更新 peerDependencies、devDependencies、README 徽章和兼容表、smoke 默认版本及真实安装测试。
+- peerDependencies 用显式并集列举受支持版本，不要写成 `^0.1.0-rc.6` 这类范围：semver 规定预发布版本只匹配同 `major.minor.patch` 且自身带预发布的比较符，因此 `^0.1.0-rc.6` 匹配不到 `0.1.1-rc.2`（已实测为 `false`）。也不要退回单版精确锁——那正是曾让 npm 在混合版本树上抛 ERESOLVE 的原因。新增受支持版本必须先跑通 smoke 再加进并集。
 - `package.json.dsh.compatibility` 的 `dshReleases` 与 `dshOperations` 是 DSH STORE 读取的逐版本兼容声明，也是唯一由我们自己给出的兼容证据。只允许写入 `smoke:dsh-install` 真实跑出来的结论；未执行的项写 `unknown`，不得由版本范围推导（商店明确规定范围不能替代精确记录）。当前 `0.1.0-rc.6`/`0.1.0-rc.8`/`0.1.1-rc.1`/`0.1.1-rc.2` 四版 install/start/uninstall 均为 `passed`，rollback 未测故为 `unknown`。
 - smoke 支持 `--dsh-version`（或 `DSH_DIAGRAM_DSH_VERSION`）选择目标 DSH，和 `--dsh-bin`（或 `DSH_BIN`）复用已装好的 DSH。多版本取证用这两个入口，不要为此改动 smoke 的隔离逻辑。
 - smoke 断言只能锚定 DSH 的**行为契约**，不能锚定某一版的源码写法。已踩过两次：boot 全局从 `window.__DSH_BOOT__` 变为 `globalThis["__DSH_BOOT__"]`；卸载后 `/diagram-assets` 从回落 SPA 变为返回 404。两处都曾把插件正常的情况误报成不兼容，现分别由 `isBootDocument` 和「404 或 SPA 皆可、其余失败」的不变量断言覆盖。

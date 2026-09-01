@@ -102,7 +102,7 @@
 - Framework/styling system: DSH Client 插件、React、CSS Modules、DSH CSS 变量；Host、轻量 Client 与 Vite 构建的同源 editor 从同一 npm bundle 发布。iframe 是编辑器资源的按需加载边界，不是独立产品路由。
 - Design-token constraints: DSH 标签容器使用现有 CSS 变量；iframe 文档无法继承父文档 token，因此编辑器 UI 先读取同名变量并提供中性字面 fallback。不引入 Tailwind 或第二套组件库。
 - Performance constraints: Excalidraw 只在“画布”标签实际挂载后加载；聊天首屏和 DSH `client.js` 不包含画布依赖；自动保存需去抖并避免高频 durable session event。
-- Compatibility constraints: DeepSeek Harness `0.1.0-rc.6`，Node `^22.19.0 || >=24.0.0`，ESM，外置 `dsh.bundle.patch` 安装；WebServer 必须绑定 `127.0.0.1`；Host/Client RPC 的输入和返回在不可信边界验证，请求在 JSON 解析前受字节上限约束；scene 拒绝可嵌入网页、外链和可执行内容，并限制序列化体积、元素数、单段文字长度及全域持久化字节数。
+- Compatibility constraints: DeepSeek Harness `0.1.1-rc.2`（并向下验证 `0.1.1-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.6`），Node `^22.19.0 || >=24.0.0`，ESM，外置 `dsh.bundle.patch` 安装；WebServer 必须绑定 `127.0.0.1`；Host/Client RPC 的输入和返回在不可信边界验证，请求在 JSON 解析前受字节上限约束；scene 拒绝可嵌入网页、外链和可执行内容，并限制序列化体积、元素数、单段文字长度及全域持久化字节数。
 - Static delivery constraints: editor route 仅响应 `GET`/`HEAD`，只提供构建目录内的 MIME 白名单文件；路径逃逸和缺失文件返回 404，入口不缓存、带内容哈希的资源可长期缓存，插件卸载后整条路由消失。
 - Test/screenshot expectations: 单元测试覆盖 `DiagramSpec` 验证、布局和 CAS；built-artifact smoke 覆盖 bundle exports；真实 DSH Web 验收覆盖生成、编辑、刷新、导出和冲突错误；产品可见输出增加 keyless snapshot 或记录缺失的外置插件 harness 支持。
 
