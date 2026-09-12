@@ -1,6 +1,11 @@
 import { Context } from "@deepseek-ai/cordis";
 import type { WebRoute, WebServer } from "@deepseek-ai/dsh-host-webserver";
-import { SessionId, SessionStore, type SessionHeader } from "@deepseek-ai/dsh-session";
+import {
+  SESSION_FORMAT_VERSION,
+  SessionId,
+  SessionStore,
+  type SessionHeader,
+} from "@deepseek-ai/dsh-session";
 import type {} from "@deepseek-ai/dsh-storage-domain";
 import ToolRuntime from "@deepseek-ai/dsh-tools";
 import { describe, expect, it, vi } from "vitest";
@@ -14,36 +19,37 @@ import {
 } from "../src/host/service.ts";
 
 const HEADER: SessionHeader = {
-  version: 0,
+  version: SESSION_FORMAT_VERSION,
   id: SessionId("session-service"),
   createdAt: 100,
   cwd: "/workspace",
+  isSeeded: false,
 };
 
 function sources(options: {
   live?: SessionHeader;
   snapshots?: SessionHeader[];
 } = {}): DiagramSessionSources & {
-  listSnapshots: ReturnType<typeof vi.fn>;
-  inspect: ReturnType<typeof vi.fn>;
+  list: ReturnType<typeof vi.fn>;
+  stat: ReturnType<typeof vi.fn>;
 } {
-  const listSnapshots = vi.fn(async () =>
-    (options.snapshots ?? []).map((header) => ({ header, revision: "revision" })));
-  const inspect = vi.fn(async () => ({ meta: HEADER, events: [] }));
+  const list = vi.fn(async () =>
+    (options.snapshots ?? []).map((header) => ({ header })));
+  const stat = vi.fn(async () => ({ header: HEADER }));
   return {
     sessions: {
       get: vi.fn(() => options.live === undefined
         ? undefined
         : { header: options.live }),
     },
-    persistence: { listSnapshots, inspect },
-    listSnapshots,
-    inspect,
+    persistence: { list, stat },
+    list,
+    stat,
   };
 }
 
 describe("diagram Session resolution", () => {
-  it("inspects a live Session lifecycle without catalog listing", async () => {
+  it("stats a live Session lifecycle without catalog listing", async () => {
     const dependencies = sources({ live: HEADER });
 
     await expect(resolveDiagramSession(
@@ -51,14 +57,14 @@ describe("diagram Session resolution", () => {
       HEADER.id,
       new AbortController().signal,
     )).resolves.toEqual({ ok: true, value: HEADER });
-    expect(dependencies.listSnapshots).not.toHaveBeenCalled();
-    expect(dependencies.inspect).toHaveBeenCalledWith(
+    expect(dependencies.list).not.toHaveBeenCalled();
+    expect(dependencies.stat).toHaveBeenCalledWith(
       HEADER.id,
-      expect.any(AbortSignal),
+      expect.anything(),
     );
   });
 
-  it("uses the durable catalog before inspecting a cold Session", async () => {
+  it("uses the durable catalog before stat-ing a cold Session", async () => {
     const dependencies = sources({ snapshots: [HEADER] });
 
     await expect(resolveDiagramSession(
@@ -66,11 +72,11 @@ describe("diagram Session resolution", () => {
       HEADER.id,
       new AbortController().signal,
     )).resolves.toEqual({ ok: true, value: HEADER });
-    expect(dependencies.listSnapshots).toHaveBeenCalledOnce();
-    expect(dependencies.inspect).toHaveBeenCalledOnce();
+    expect(dependencies.list).toHaveBeenCalledOnce();
+    expect(dependencies.stat).toHaveBeenCalledOnce();
   });
 
-  it("returns session-not-found without inspecting an absent Session", async () => {
+  it("returns session-not-found without stat-ing an absent Session", async () => {
     const dependencies = sources();
 
     await expect(resolveDiagramSession(
@@ -81,7 +87,7 @@ describe("diagram Session resolution", () => {
       ok: false,
       error: { code: "session-not-found", sessionId: HEADER.id },
     });
-    expect(dependencies.inspect).not.toHaveBeenCalled();
+    expect(dependencies.stat).not.toHaveBeenCalled();
   });
 
   it("rechecks live Sessions after a concurrent catalog miss", async () => {
@@ -97,13 +103,13 @@ describe("diagram Session resolution", () => {
       HEADER.id,
       new AbortController().signal,
     )).resolves.toEqual({ ok: true, value: HEADER });
-    expect(dependencies.inspect).toHaveBeenCalledOnce();
+    expect(dependencies.stat).toHaveBeenCalledOnce();
   });
 
   it("never returns an inspected lifecycle replaced by a live Session", async () => {
     const current = { ...HEADER, createdAt: 101 };
     const dependencies = sources({ live: current });
-    dependencies.inspect.mockResolvedValue({ meta: HEADER, events: [] });
+    dependencies.stat.mockResolvedValue({ header: HEADER });
 
     await expect(resolveDiagramSession(
       dependencies,
@@ -156,7 +162,8 @@ async function diagramHost(
     open,
   } as unknown as Context["storageDomain"]);
   ctx.provide("sessionPersistence", {
-    inspect: vi.fn(),
+    list: vi.fn(async () => []),
+    stat: vi.fn(async () => undefined),
   } as never);
   if (sessionsProvider === "native") {
     await ctx.plugin(SessionStore);

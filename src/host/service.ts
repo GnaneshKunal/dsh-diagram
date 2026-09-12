@@ -59,12 +59,15 @@ export interface DiagramSessionSources {
   };
   /** Durable Session existence catalog and authoritative lifecycle inspection. */
   readonly persistence: {
-    listSnapshots(signal?: AbortSignal): Promise<readonly {
+    list(options?: { signal?: AbortSignal }): Promise<readonly {
       readonly header: SessionHeader;
     }[]>;
-    inspect(id: SessionId, signal?: AbortSignal): Promise<{
-      readonly meta: SessionHeader;
-    }>;
+    stat(
+      id: SessionId,
+      options?: { signal?: AbortSignal },
+    ): Promise<{
+      readonly header: SessionHeader;
+    } | undefined>;
   };
 }
 
@@ -95,7 +98,7 @@ export async function resolveDiagramSession(
   const sessionId = SessionId(String(rawSessionId));
   const initialLive = sources.sessions.get(sessionId)?.header;
   if (initialLive === undefined) {
-    const snapshots = await sources.persistence.listSnapshots(signal);
+    const snapshots = await sources.persistence.list({ signal });
     signal.throwIfAborted();
     if (!snapshots.some((snapshot) => snapshot.header.id === sessionId)
       && sources.sessions.get(sessionId) === undefined) {
@@ -105,20 +108,26 @@ export async function resolveDiagramSession(
       };
     }
   }
-  const inspection = await sources.persistence.inspect(sessionId, signal);
+  const snapshot = await sources.persistence.stat(sessionId, { signal });
   signal.throwIfAborted();
-  const currentLive = sources.sessions.get(sessionId)?.header;
-  if (currentLive !== undefined) {
-    return { ok: true, value: currentLive };
-  }
-  if (initialLive !== undefined
-    && !sameSessionLifecycle(initialLive, inspection.meta)) {
+  if (snapshot === undefined) {
     return {
       ok: false,
       error: { code: "session-not-found", sessionId },
     };
   }
-  return { ok: true, value: inspection.meta };
+  const currentLive = sources.sessions.get(sessionId)?.header;
+  if (currentLive !== undefined) {
+    return { ok: true, value: currentLive };
+  }
+  if (initialLive !== undefined
+    && !sameSessionLifecycle(initialLive, snapshot.header)) {
+    return {
+      ok: false,
+      error: { code: "session-not-found", sessionId },
+    };
+  }
+  return { ok: true, value: snapshot.header };
 }
 
 function sameSessionLifecycle(left: SessionHeader, right: SessionHeader): boolean {

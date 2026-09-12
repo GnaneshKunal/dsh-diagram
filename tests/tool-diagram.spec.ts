@@ -1,5 +1,5 @@
 import type { SessionHeader } from "@deepseek-ai/dsh-session";
-import { SessionId } from "@deepseek-ai/dsh-session";
+import { SESSION_FORMAT_VERSION, SessionId } from "@deepseek-ai/dsh-session";
 import type { ToolRunContext } from "@deepseek-ai/dsh-tools";
 import { describe, expect, it, vi } from "vitest";
 
@@ -19,10 +19,11 @@ import {
 } from "../src/host/tools.ts";
 
 const HEADER: SessionHeader = {
-  version: 0,
+  version: SESSION_FORMAT_VERSION,
   id: SessionId("session-tool"),
   createdAt: 100,
   cwd: "/workspace",
+  isSeeded: false,
 };
 
 const SPEC: DiagramSpec = {
