@@ -3,10 +3,10 @@ import type { ConnectionRpcHandler } from "@deepseek-ai/dsh-client-connection";
 import {
   clientRequestSchema,
   RpcId,
-  type RpcResult,
+  type ConnectionRpcResult as RpcResult,
   type RpcId as RpcIdType,
   type ServerResponse as RpcServerResponse,
-} from "@deepseek-ai/dsh-host-apiproxy/api";
+} from "@deepseek-ai/dsh-client-connection";
 
 import { DIAGRAM_RPC_CHANNEL } from "../core/rpc.ts";
 

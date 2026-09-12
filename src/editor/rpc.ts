@@ -1,9 +1,6 @@
 import { z } from "zod";
-import {
-  RpcId,
-  serverResponseSchema,
-  type ClientRequest,
-} from "@deepseek-ai/dsh-host-apiproxy/api";
+import type { ClientRequest } from "@deepseek-ai/dsh-client-connection";
+import { RpcId, serverResponseSchema } from "./connection-protocol.ts";
 
 import {
   DEFAULT_DIAGRAM_VALIDATION_POLICY,
